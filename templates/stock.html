@@ -1,0 +1,1056 @@
+{% extends "base.html" %}
+
+{% block title %}{{ symbol }} - Stock Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-white">
+                <i class="fas fa-chart-line me-2"></i>
+                Stock Analysis: <span id="stockSymbol">{{ symbol }}</span>
+            </h2>
+            <a href="/" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Search
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="text-center">
+    <div class="card">
+        <div class="card-body p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 text-muted">Fetching stock data for {{ symbol }}...</p>
+        </div>
+    </div>
+</div>
+
+<div id="error" class="alert alert-danger" style="display: none;">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span id="errorMessage"></span>
+    <div class="mt-3">
+        <a href="/" class="btn btn-outline-danger">Try Another Stock</a>
+    </div>
+</div>
+
+<div id="stockData" style="display: none;">
+    <!-- Company Information -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 id="companyName" class="mb-3">Company Information</h4>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <p><strong>Sector:</strong> <span id="companySector">-</span></p>
+                                    <p><strong>Industry:</strong> <span id="companyIndustry">-</span></p>
+                                </div>
+                                <div class="col-sm-6">
+                                    <p><strong>Market Cap:</strong> <span id="marketCap">-</span></p>
+                                    <p><strong>P/E Ratio:</strong> <span id="peRatio">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="metric-card">
+                                <div class="metric-value" id="currentPrice">$0.00</div>
+                                <div class="metric-label">Current Price</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Price Chart with Indicators -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Price Chart with Technical Indicators
+                        </h5>
+                        <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#indicatorControls" aria-expanded="false">
+                            <i class="fas fa-sliders-h me-1"></i>
+                            Indicators
+                        </button>
+                    </div>
+                    <div class="collapse mt-3" id="indicatorControls">
+                        <div class="card card-body bg-light">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <h6 class="fw-bold text-primary mb-2">
+                                        <i class="fas fa-chart-line me-1"></i>
+                                        Moving Averages
+                                    </h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="sma20" checked>
+                                        <label class="form-check-label" for="sma20">
+                                            SMA 20
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="sma50" checked>
+                                        <label class="form-check-label" for="sma50">
+                                            SMA 50
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="ema12">
+                                        <label class="form-check-label" for="ema12">
+                                            EMA 12
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="ema26">
+                                        <label class="form-check-label" for="ema26">
+                                            EMA 26
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="fw-bold text-success mb-2">
+                                        <i class="fas fa-expand-arrows-alt me-1"></i>
+                                        Bollinger Bands
+                                    </h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="bbUpper">
+                                        <label class="form-check-label" for="bbUpper">
+                                            Upper Band
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="bbMiddle">
+                                        <label class="form-check-label" for="bbMiddle">
+                                            Middle Band
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="bbLower">
+                                        <label class="form-check-label" for="bbLower">
+                                            Lower Band
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="fw-bold text-warning mb-2">
+                                        <i class="fas fa-cogs me-1"></i>
+                                        Quick Presets
+                                    </h6>
+                                    <button class="btn btn-outline-primary btn-sm mb-1 w-100" onclick="applyPreset('sma')">
+                                        📈 SMA Only
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm mb-1 w-100" onclick="applyPreset('ema')">
+                                        📊 EMA Only
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm mb-1 w-100" onclick="applyPreset('bollinger')">
+                                        📏 Bollinger Only
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm mb-1 w-100" onclick="applyPreset('all')">
+                                        🎯 All Indicators
+                                    </button>
+                                </div>
+                                <div class="col-md-3">
+                                    <h6 class="fw-bold text-danger mb-2">
+                                        <i class="fas fa-tools me-1"></i>
+                                        Controls
+                                    </h6>
+                                    <button class="btn btn-success btn-sm mb-1 w-100" onclick="applyPreset('none'); setTimeout(() => applyPreset('default'), 100)">
+                                        🔄 Reset to Default
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm mb-1 w-100" onclick="applyPreset('none')">
+                                        � Clear All
+                                    </button>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" id="showLegend" checked>
+                                        <label class="form-check-label" for="showLegend">
+                                            Show Legend
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Indicators Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        RSI (Relative Strength Index)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="rsiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-wave-square me-2"></i>
+                        MACD
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="macdChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volume Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Volume Chart (Last 30 Days)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="volumeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Analysis Signals -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-signal me-2"></i>
+                        Technical Analysis Signals
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div id="rsiSignal" class="badge bg-secondary mb-2">RSI: --</div>
+                                <p class="small text-muted">Momentum</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div id="macdSignal" class="badge bg-secondary mb-2">MACD: --</div>
+                                <p class="small text-muted">Trend</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div id="bbSignal" class="badge bg-secondary mb-2">Bollinger: --</div>
+                                <p class="small text-muted">Volatility</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <div id="smaSignal" class="badge bg-secondary mb-2">SMA: --</div>
+                                <p class="small text-muted">Moving Average</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value" id="highPrice">$0.00</div>
+                <div class="metric-label">30-Day High</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value" id="lowPrice">$0.00</div>
+                <div class="metric-label">30-Day Low</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value" id="avgPrice">$0.00</div>
+                <div class="metric-label">30-Day Average</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value" id="totalVolume">0</div>
+                <div class="metric-label">Total Volume</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const symbol = '{{ symbol }}';
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const errorMessage = document.getElementById('errorMessage');
+    const stockData = document.getElementById('stockData');
+    
+    let priceChart = null;
+    let volumeChart = null;
+    let rsiChart = null;
+    let macdChart = null;
+
+    // Fetch stock data
+    fetchStockData(symbol);
+
+    // Handle individual indicator checkboxes
+    const indicatorCheckboxes = ['sma20', 'sma50', 'ema12', 'ema26', 'bbUpper', 'bbMiddle', 'bbLower'];
+    
+    indicatorCheckboxes.forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                updateIndividualIndicator(id, this.checked);
+            });
+        }
+    });
+    
+    // Handle legend toggle
+    document.getElementById('showLegend').addEventListener('change', function() {
+        if (priceChart) {
+            priceChart.options.plugins.legend.display = this.checked;
+            priceChart.update();
+        }
+    });
+
+    async function fetchStockData(symbol) {
+        try {
+            const response = await fetch(`/api/stock/${symbol}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to fetch stock data');
+            }
+
+            displayStockData(data);
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    function displayStockData(data) {
+        const stockInfo = data.stock_data;
+        const companyInfo = data.company_info;
+
+        // Update company information
+        if (companyInfo) {
+            document.getElementById('companyName').textContent = companyInfo.name || symbol;
+            document.getElementById('companySector').textContent = companyInfo.sector || 'N/A';
+            document.getElementById('companyIndustry').textContent = companyInfo.industry || 'N/A';
+            document.getElementById('marketCap').textContent = formatMarketCap(companyInfo.market_cap);
+            document.getElementById('peRatio').textContent = companyInfo.pe_ratio || 'N/A';
+        }
+
+        // Update current price
+        const currentPrice = stockInfo.prices[stockInfo.prices.length - 1];
+        document.getElementById('currentPrice').textContent = `$${currentPrice.toFixed(2)}`;
+
+        // Calculate statistics
+        const prices = stockInfo.prices;
+        const volumes = stockInfo.volumes;
+        
+        const highPrice = Math.max(...prices);
+        const lowPrice = Math.min(...prices);
+        const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+        const totalVolume = volumes.reduce((a, b) => a + b, 0);
+
+        document.getElementById('highPrice').textContent = `$${highPrice.toFixed(2)}`;
+        document.getElementById('lowPrice').textContent = `$${lowPrice.toFixed(2)}`;
+        document.getElementById('avgPrice').textContent = `$${avgPrice.toFixed(2)}`;
+        document.getElementById('totalVolume').textContent = formatVolume(totalVolume);
+
+        // Create charts
+        createPriceChart(stockInfo);
+        createVolumeChart(stockInfo);
+        createRSIChart(stockInfo);
+        createMACDChart(stockInfo);
+
+        // Set default indicator display (SMA 20, 50 checked by default)
+        setTimeout(() => {
+            applyPreset('default');
+        }, 100);
+
+        // Update technical signals
+        updateTechnicalSignals(stockInfo);
+
+        // Show stock data
+        stockData.style.display = 'block';
+    }
+
+    function createPriceChart(stockInfo) {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        
+        if (priceChart) {
+            priceChart.destroy();
+        }
+
+        const datasets = [{
+            label: `${symbol} Price`,
+            data: stockInfo.prices,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#667eea',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            order: 1
+        }];
+
+        // Add SMA lines (shown by default)
+        if (stockInfo.indicators.sma_20) {
+            datasets.push({
+                label: 'SMA 20',
+                data: stockInfo.indicators.sma_20,
+                borderColor: '#ff6b6b',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0,
+                order: 2
+            });
+        }
+
+        if (stockInfo.indicators.sma_50) {
+            datasets.push({
+                label: 'SMA 50',
+                data: stockInfo.indicators.sma_50,
+                borderColor: '#4ecdc4',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0,
+                order: 3,
+                hidden: false
+            });
+        }
+
+        // Add EMA lines (hidden by default)
+        if (stockInfo.indicators.ema_12) {
+            datasets.push({
+                label: 'EMA 12',
+                data: stockInfo.indicators.ema_12,
+                borderColor: '#45b7d1',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0,
+                order: 4,
+                hidden: true
+            });
+        }
+
+        if (stockInfo.indicators.ema_26) {
+            datasets.push({
+                label: 'EMA 26',
+                data: stockInfo.indicators.ema_26,
+                borderColor: '#f9ca24',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0,
+                order: 5,
+                hidden: true
+            });
+        }
+
+        // Add Bollinger Bands (hidden by default)
+        if (stockInfo.indicators.bollinger_upper) {
+            datasets.push({
+                label: 'Bollinger Upper',
+                data: stockInfo.indicators.bollinger_upper,
+                borderColor: '#6c5ce7',
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 0,
+                order: 6,
+                hidden: true
+            });
+
+            datasets.push({
+                label: 'Bollinger Lower',
+                data: stockInfo.indicators.bollinger_lower,
+                borderColor: '#6c5ce7',
+                backgroundColor: 'rgba(108, 92, 231, 0.1)',
+                borderWidth: 1,
+                fill: '-1',
+                tension: 0.4,
+                pointRadius: 0,
+                order: 7,
+                hidden: true
+            });
+        }
+
+        priceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: stockInfo.dates,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 0) {
+                                    return `Price: $${context.parsed.y.toFixed(2)}`;
+                                } else {
+                                    return `${context.dataset.label}: $${context.parsed.y ? context.parsed.y.toFixed(2) : 'N/A'}`;
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        },
+                        ticks: {
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Price ($)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+
+    function createVolumeChart(stockInfo) {
+        const ctx = document.getElementById('volumeChart').getContext('2d');
+        
+        if (volumeChart) {
+            volumeChart.destroy();
+        }
+
+        volumeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: stockInfo.dates,
+                datasets: [{
+                    label: `${symbol} Volume`,
+                    data: stockInfo.volumes,
+                    backgroundColor: 'rgba(118, 75, 162, 0.7)',
+                    borderColor: '#764ba2',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Volume: ${formatVolume(context.parsed.y)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        },
+                        ticks: {
+                            maxTicksLimit: 10
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Volume'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return formatVolume(value);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function createRSIChart(stockInfo) {
+        const ctx = document.getElementById('rsiChart').getContext('2d');
+        
+        if (rsiChart) {
+            rsiChart.destroy();
+        }
+
+        rsiChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: stockInfo.dates,
+                datasets: [{
+                    label: 'RSI',
+                    data: stockInfo.indicators.rsi,
+                    borderColor: '#e17055',
+                    backgroundColor: 'rgba(225, 112, 85, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        ticks: {
+                            maxTicksLimit: 8
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'RSI'
+                        },
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0);
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        hoverRadius: 6
+                    }
+                }
+            },
+            plugins: [{
+                afterDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const yAxis = chart.scales.y;
+                    
+                    // Draw RSI reference lines
+                    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    
+                    // Overbought line (70)
+                    const overboughtY = yAxis.getPixelForValue(70);
+                    ctx.beginPath();
+                    ctx.moveTo(chart.chartArea.left, overboughtY);
+                    ctx.lineTo(chart.chartArea.right, overboughtY);
+                    ctx.stroke();
+                    
+                    // Oversold line (30)
+                    const oversoldY = yAxis.getPixelForValue(30);
+                    ctx.beginPath();
+                    ctx.moveTo(chart.chartArea.left, oversoldY);
+                    ctx.lineTo(chart.chartArea.right, oversoldY);
+                    ctx.stroke();
+                    
+                    ctx.setLineDash([]);
+                }
+            }]
+        });
+    }
+
+    function createMACDChart(stockInfo) {
+        const ctx = document.getElementById('macdChart').getContext('2d');
+        
+        if (macdChart) {
+            macdChart.destroy();
+        }
+
+        macdChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: stockInfo.dates,
+                datasets: [{
+                    label: 'MACD Line',
+                    data: stockInfo.indicators.macd_line,
+                    borderColor: '#0984e3',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    type: 'line'
+                }, {
+                    label: 'Signal Line',
+                    data: stockInfo.indicators.macd_signal,
+                    borderColor: '#e17055',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 1,
+                    type: 'line'
+                }, {
+                    label: 'Histogram',
+                    data: stockInfo.indicators.macd_histogram,
+                    backgroundColor: function(context) {
+                        const value = context.parsed.y;
+                        return value >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)';
+                    },
+                    borderColor: function(context) {
+                        const value = context.parsed.y;
+                        return value >= 0 ? '#2ecc71' : '#e74c3c';
+                    },
+                    borderWidth: 1,
+                    type: 'bar'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        ticks: {
+                            maxTicksLimit: 8
+                        }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'MACD'
+                        }
+                    }
+                }
+            },
+            plugins: [{
+                afterDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const yAxis = chart.scales.y;
+                    
+                    // Draw zero line
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 1;
+                    
+                    const zeroY = yAxis.getPixelForValue(0);
+                    ctx.beginPath();
+                    ctx.moveTo(chart.chartArea.left, zeroY);
+                    ctx.lineTo(chart.chartArea.right, zeroY);
+                    ctx.stroke();
+                }
+            }]
+        });
+    }
+
+    function updateTechnicalSignals(stockInfo) {
+        const indicators = stockInfo.indicators;
+        const currentPrice = stockInfo.prices[stockInfo.prices.length - 1];
+        
+        // RSI Signal
+        const currentRSI = indicators.rsi[indicators.rsi.length - 1];
+        const rsiSignal = document.getElementById('rsiSignal');
+        if (currentRSI !== null && currentRSI !== undefined) {
+            rsiSignal.textContent = `RSI: ${currentRSI.toFixed(1)}`;
+            if (currentRSI > 70) {
+                rsiSignal.className = 'badge bg-danger mb-2';
+                rsiSignal.title = 'Overbought - Potential Sell Signal';
+            } else if (currentRSI < 30) {
+                rsiSignal.className = 'badge bg-success mb-2';
+                rsiSignal.title = 'Oversold - Potential Buy Signal';
+            } else {
+                rsiSignal.className = 'badge bg-warning mb-2';
+                rsiSignal.title = 'Neutral';
+            }
+        }
+        
+        // MACD Signal
+        const currentMACD = indicators.macd_line[indicators.macd_line.length - 1];
+        const currentSignal = indicators.macd_signal[indicators.macd_signal.length - 1];
+        const macdSignal = document.getElementById('macdSignal');
+        if (currentMACD !== null && currentSignal !== null) {
+            if (currentMACD > currentSignal) {
+                macdSignal.textContent = 'MACD: Bullish';
+                macdSignal.className = 'badge bg-success mb-2';
+                macdSignal.title = 'MACD above Signal Line';
+            } else {
+                macdSignal.textContent = 'MACD: Bearish';
+                macdSignal.className = 'badge bg-danger mb-2';
+                macdSignal.title = 'MACD below Signal Line';
+            }
+        }
+        
+        // Bollinger Bands Signal
+        const currentUpper = indicators.bollinger_upper[indicators.bollinger_upper.length - 1];
+        const currentLower = indicators.bollinger_lower[indicators.bollinger_lower.length - 1];
+        const bbSignal = document.getElementById('bbSignal');
+        if (currentUpper !== null && currentLower !== null) {
+            if (currentPrice > currentUpper) {
+                bbSignal.textContent = 'BB: Overbought';
+                bbSignal.className = 'badge bg-danger mb-2';
+            } else if (currentPrice < currentLower) {
+                bbSignal.textContent = 'BB: Oversold';
+                bbSignal.className = 'badge bg-success mb-2';
+            } else {
+                bbSignal.textContent = 'BB: Normal';
+                bbSignal.className = 'badge bg-info mb-2';
+            }
+        }
+        
+        // SMA Signal
+        const currentSMA20 = indicators.sma_20[indicators.sma_20.length - 1];
+        const smaSignal = document.getElementById('smaSignal');
+        if (currentSMA20 !== null) {
+            if (currentPrice > currentSMA20) {
+                smaSignal.textContent = 'SMA: Above';
+                smaSignal.className = 'badge bg-success mb-2';
+                smaSignal.title = 'Price above 20-day SMA';
+            } else {
+                smaSignal.textContent = 'SMA: Below';
+                smaSignal.className = 'badge bg-danger mb-2';
+                smaSignal.title = 'Price below 20-day SMA';
+            }
+        }
+    }
+
+    function updateIndividualIndicator(indicatorId, show) {
+        if (!priceChart) return;
+        
+        const datasets = priceChart.data.datasets;
+        let targetLabel = '';
+        
+        // Map checkbox IDs to dataset labels
+        switch(indicatorId) {
+            case 'sma20':
+                targetLabel = 'SMA 20';
+                break;
+            case 'sma50':
+                targetLabel = 'SMA 50';
+                break;
+            case 'ema12':
+                targetLabel = 'EMA 12';
+                break;
+            case 'ema26':
+                targetLabel = 'EMA 26';
+                break;
+            case 'bbUpper':
+                targetLabel = 'Bollinger Upper';
+                break;
+            case 'bbMiddle':
+                targetLabel = 'Bollinger Lower'; // This will show both middle and lower as a filled area
+                break;
+            case 'bbLower':
+                targetLabel = 'Bollinger Lower';
+                break;
+        }
+        
+        // Find and toggle the specific dataset
+        datasets.forEach((dataset, index) => {
+            if (dataset.label === targetLabel) {
+                priceChart.setDatasetVisibility(index, show);
+            }
+            // Special handling for Bollinger bands (show/hide together)
+            if (indicatorId === 'bbMiddle' || indicatorId === 'bbLower') {
+                if (dataset.label.includes('Bollinger')) {
+                    priceChart.setDatasetVisibility(index, show);
+                }
+            }
+        });
+        
+        priceChart.update('none');
+    }
+    
+    function applyPreset(preset) {
+        // First, uncheck all checkboxes
+        const checkboxes = ['sma20', 'sma50', 'ema12', 'ema26', 'bbUpper', 'bbMiddle', 'bbLower'];
+        checkboxes.forEach(id => {
+            const checkbox = document.getElementById(id);
+            if (checkbox) {
+                checkbox.checked = false;
+                updateIndividualIndicator(id, false);
+            }
+        });
+        
+        // Apply specific preset
+        switch(preset) {
+            case 'default':
+                document.getElementById('sma20').checked = true;
+                document.getElementById('sma50').checked = true;
+                updateIndividualIndicator('sma20', true);
+                updateIndividualIndicator('sma50', true);
+                break;
+                
+            case 'sma':
+                document.getElementById('sma20').checked = true;
+                document.getElementById('sma50').checked = true;
+                updateIndividualIndicator('sma20', true);
+                updateIndividualIndicator('sma50', true);
+                break;
+                
+            case 'ema':
+                document.getElementById('ema12').checked = true;
+                document.getElementById('ema26').checked = true;
+                updateIndividualIndicator('ema12', true);
+                updateIndividualIndicator('ema26', true);
+                break;
+                
+            case 'bollinger':
+                document.getElementById('bbUpper').checked = true;
+                document.getElementById('bbMiddle').checked = true;
+                document.getElementById('bbLower').checked = true;
+                updateIndividualIndicator('bbUpper', true);
+                updateIndividualIndicator('bbMiddle', true);
+                updateIndividualIndicator('bbLower', true);
+                break;
+                
+            case 'all':
+                checkboxes.forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        updateIndividualIndicator(id, true);
+                    }
+                });
+                break;
+                
+            case 'none':
+                // Already cleared above
+                break;
+        }
+    }
+    
+    // Make applyPreset globally accessible for onclick handlers
+    window.applyPreset = applyPreset;
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        error.style.display = 'block';
+    }
+
+    function formatVolume(volume) {
+        if (volume >= 1e9) {
+            return (volume / 1e9).toFixed(1) + 'B';
+        } else if (volume >= 1e6) {
+            return (volume / 1e6).toFixed(1) + 'M';
+        } else if (volume >= 1e3) {
+            return (volume / 1e3).toFixed(1) + 'K';
+        }
+        return volume.toString();
+    }
+
+    function formatMarketCap(marketCap) {
+        if (!marketCap || marketCap === 'None') return 'N/A';
+        
+        const value = parseFloat(marketCap);
+        if (isNaN(value)) return marketCap;
+        
+        if (value >= 1e12) {
+            return '$' + (value / 1e12).toFixed(1) + 'T';
+        } else if (value >= 1e9) {
+            return '$' + (value / 1e9).toFixed(1) + 'B';
+        } else if (value >= 1e6) {
+            return '$' + (value / 1e6).toFixed(1) + 'M';
+        }
+        return '$' + value.toLocaleString();
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (priceChart) priceChart.resize();
+        if (volumeChart) volumeChart.resize();
+        if (rsiChart) rsiChart.resize();
+        if (macdChart) macdChart.resize();
+    });
+});
+</script>
+{% endblock %}
