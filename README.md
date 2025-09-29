@@ -25,9 +25,8 @@ A Flask-based web application for visualizing stock market data using the Alpha 
    ```
 
 4. **Set up environment variables**
-   - Copy `.env.example` to `.env`
    - Get your free API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
-   - Replace `your_api_key_here` with your actual API key in the `.env` file
+   - Replace with your actual API key in the `.env` file
 
 5. **Run the application**
    ```bash
